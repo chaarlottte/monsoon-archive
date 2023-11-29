@@ -1,0 +1,78 @@
+name: Build and Publish
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build with Maven
+        # run: mvn clean package
+        run: mvn -B package --file pom.xml
+
+      - name: Set Monsoon path to use
+        id: set_monsoon_path
+        # run: echo "MONSOON_PATH=$(echo target/Monsoon-3.0-jar-with-dependencies.jar)" >> $GITHUB_ENV
+        run: echo "MONSOON_PATH=$(echo target/Monsoon-3.0.jar)" >> $GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: compiled-client
+          path: ${{ env.MONSOON_PATH }}
+
+      - name: Set shortened SHA
+        id: short_sha
+        run: echo "SHORT_SHA=$(echo ${{ github.sha }} | cut -c 1-7)" >> $GITHUB_ENV
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: build-${{ env.SHORT_SHA }}
+          release_name: Build ${{ env.SHORT_SHA }}
+          draft: false
+          prerelease: true
+
+      - name: Upload JAR for release
+        id: upload_jar
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.MONSOON_PATH }}
+          asset_name: Monsoon.jar
+          asset_content_type: application/java-archive
+
+      - name: Upload JSON for release
+        id: upload_json
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: monsoon-launcher-json.json
+          asset_name: Monsoon.json
+          asset_content_type: application/json

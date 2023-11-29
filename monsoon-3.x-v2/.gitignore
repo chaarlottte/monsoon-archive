@@ -1,0 +1,10 @@
+.idea/
+target/
+workspace/*.properties
+workspace/*.dat
+workspace/*.txt
+workspace/*.json
+workspace/*/
+workspace/resourcepacks/
+workspace/*
+workspace/optionsof.txt

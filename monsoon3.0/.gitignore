@@ -1,0 +1,10 @@
+.idea/
+jars/
+gradle/
+target/
+out/
+workspace/
+export/
+*.iml
+/run/
+obfuscation/
